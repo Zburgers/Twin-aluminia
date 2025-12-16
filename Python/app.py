@@ -8,7 +8,7 @@ import os
 # ------------------------------
 # 0) Setup Flask app
 # ------------------------------
-app = Flask(_name_)
+app = Flask(__name__)
 
 # ------------------------------
 # 1) Load trained model
@@ -16,11 +16,17 @@ app = Flask(_name_)
 SAVE_DIR = "/mnt/data"
 MODEL_FILE = os.path.join(SAVE_DIR, "twin_aluminai_model.joblib")
 
-if not os.path.exists(MODEL_FILE):
-    raise FileNotFoundError(f"Model not found at {MODEL_FILE}")
-
-model = joblib.load(MODEL_FILE)
-print("Model loaded successfully.")
+# Try to load the model, but don't crash if it's missing (for startup reliability)
+try:
+    if os.path.exists(MODEL_FILE):
+        model = joblib.load(MODEL_FILE)
+        print("Model loaded successfully.")
+    else:
+        print(f"Warning: Model file not found at {MODEL_FILE}. Prediction endpoint will fail.")
+        model = None
+except Exception as e:
+    print(f"Error loading model: {e}")
+    model = None
 
 # ------------------------------
 # 2) Define prediction endpoint
@@ -45,6 +51,9 @@ def predict():
     }
     """
     try:
+        if model is None:
+             return jsonify({"error": "Model not loaded"}), 500
+
         data = request.json
         if data is None:
             return jsonify({"error": "No JSON payload received"}), 400
@@ -73,6 +82,6 @@ def health():
 # ------------------------------
 # 4) Run Flask app
 # ------------------------------
-if _name_ == "_main_":
+if __name__ == "__main__":
     # Run on localhost:5000
     app.run(host="0.0.0.0", port=5000, debug=True)

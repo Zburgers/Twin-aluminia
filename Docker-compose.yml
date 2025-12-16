@@ -10,15 +10,34 @@ services:
       PORT: 4500 
     depends_on:
       - mongo
+    volumes:
+      - ./server:/server
+      - /server/node_modules
 
   frontend:
     build: ./client
     ports:
-      - "8080:8080"  
+      - "8080:3000"
     networks:
       - mern_network
     environment:
       REACT_APP_API_URL: http://backend:4500 
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+
+  python_app:
+    build: ./Python
+    ports:
+      - "5000:5000"
+    networks:
+      - mern_network
+    volumes:
+      - ./ML-Model:/mnt/data
+      - ./Python:/app
 
   mongo:
     image: mongo:latest  
